@@ -6,6 +6,8 @@ Copyright: © 2020, Akshath Jain. All rights reserved.
 Licensing: More information can be found here: https://github.com/akshathjain/sliding_up_panel/blob/master/LICENSE
 */
 
+import 'dart:ui';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
@@ -167,6 +169,9 @@ class SlidingUpPanel extends StatefulWidget {
   /// cover the BottomNavigationBar (In cases where the Panel is on a Stack)
   final bool enableBottomNavigationBarMargin;
 
+  /// Define Blur Strength when [enableBlurBackdrop] is enabled
+  final double backdropBlurStrength;
+
   SlidingUpPanel({
     Key key,
     this.panel,
@@ -205,6 +210,7 @@ class SlidingUpPanel extends StatefulWidget {
     this.header,
     this.footer,
     this.enableBottomNavigationBarMargin = false,
+    this.backdropBlurStrength = 0
   }) : assert(panel != null || panelBuilder != null),
        assert(0 <= backdropOpacity && backdropOpacity <= 1.0),
        assert (snapPoint == null || 0 < snapPoint && snapPoint < 1.0),
@@ -293,14 +299,20 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with TickerProviderStat
           child: AnimatedBuilder(
             animation: _ac,
             builder: (context, _) {
-              return Container(
-                height: MediaQuery.of(context).size.height,
-                width: MediaQuery.of(context).size.width,
+              return BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: _ac.value*widget.backdropBlurStrength,
+                  sigmaY: _ac.value*widget.backdropBlurStrength
+                ),
+                child: Container(
+                  height: MediaQuery.of(context).size.height,
+                  width: MediaQuery.of(context).size.width,
 
-                //set color to null so that touch events pass through
-                //to the body when the panel is closed, otherwise,
-                //if a color exists, then touch events won't go through
-                color: _ac.value == 0.0 ? null : widget.backdropColor.withOpacity(widget.backdropOpacity * _ac.value),
+                  //set color to null so that touch events pass through
+                  //to the body when the panel is closed, otherwise,
+                  //if a color exists, then touch events won't go through
+                  color: _ac.value == 0.0 ? null : widget.backdropColor.withOpacity(widget.backdropOpacity * _ac.value),
+                ),
               );
             }
           ),
