@@ -163,6 +163,10 @@ class SlidingUpPanel extends StatefulWidget {
   /// by default the Panel is open and must be swiped closed by the user.
   final PanelState defaultPanelState;
 
+  /// Tells the Panel to build up a Margin while the Panel is Sliding Up to
+  /// cover the BottomNavigationBar (In cases where the Panel is on a Stack)
+  final bool enableBottomNavigationBarMargin;
+
   SlidingUpPanel({
     Key key,
     this.panel,
@@ -199,17 +203,19 @@ class SlidingUpPanel extends StatefulWidget {
     this.slideDirection = SlideDirection.UP,
     this.defaultPanelState = PanelState.CLOSED,
     this.header,
-    this.footer
+    this.footer,
+    this.enableBottomNavigationBarMargin = false,
   }) : assert(panel != null || panelBuilder != null),
        assert(0 <= backdropOpacity && backdropOpacity <= 1.0),
        assert (snapPoint == null || 0 < snapPoint && snapPoint < 1.0),
+       assert(margin != null || enableBottomNavigationBarMargin),
        super(key: key);
 
   @override
   _SlidingUpPanelState createState() => _SlidingUpPanelState();
 }
 
-class _SlidingUpPanelState extends State<SlidingUpPanel> with SingleTickerProviderStateMixin{
+class _SlidingUpPanelState extends State<SlidingUpPanel> with TickerProviderStateMixin {
 
   AnimationController _ac;
 
@@ -228,6 +234,7 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with SingleTickerProvid
       duration: const Duration(milliseconds: 300),
       value: widget.defaultPanelState == PanelState.CLOSED ? 0.0 : 1.0 //set the default panel state (i.e. set initial value of _ac)
     )..addListener((){
+
       if(widget.onPanelSlide != null) widget.onPanelSlide(_ac.value);
 
       if(widget.onPanelOpened != null && _ac.value == 1.0) widget.onPanelOpened();
@@ -248,6 +255,11 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    EdgeInsetsGeometry finalPanelMargin = widget.enableBottomNavigationBarMargin
+      ? EdgeInsets.only(
+          bottom: kToolbarHeight
+        )
+      : widget.margin;
     return Stack(
       alignment: widget.slideDirection == SlideDirection.UP ? Alignment.bottomCenter : Alignment.topCenter,
       children: <Widget>[
@@ -302,7 +314,10 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with SingleTickerProvid
             builder: (context, child) {
               return Container(
                 height: _ac.value * (widget.maxHeight - widget.minHeight) + widget.minHeight,
-                margin: widget.margin,
+                margin: widget.enableBottomNavigationBarMargin
+                  ? EdgeInsets.only(
+                    bottom: kToolbarHeight * (1 - _ac.value)
+                  ) : widget.margin,
                 padding: widget.padding,
                 decoration: widget.renderPanelSheet ? BoxDecoration(
                   border: widget.border,
@@ -321,7 +336,7 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with SingleTickerProvid
                   top: widget.slideDirection == SlideDirection.UP ? 0.0 : null,
                   bottom: widget.slideDirection == SlideDirection.DOWN ? 0.0 : null,
                   width:  MediaQuery.of(context).size.width -
-                          (widget.margin != null ? widget.margin.horizontal : 0) -
+                          (finalPanelMargin != null ? finalPanelMargin.horizontal : 0) -
                           (widget.padding != null ? widget.padding.horizontal : 0),
                   child: Container(
                     height: widget.maxHeight,
@@ -350,7 +365,7 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with SingleTickerProvid
                   top: widget.slideDirection == SlideDirection.UP ? 0.0 : null,
                   bottom: widget.slideDirection == SlideDirection.DOWN ? 0.0 : null,
                   width:  MediaQuery.of(context).size.width -
-                          (widget.margin != null ? widget.margin.horizontal : 0) -
+                          (finalPanelMargin != null ? finalPanelMargin.horizontal : 0) -
                           (widget.padding != null ? widget.padding.horizontal : 0),
                   child: Container(
                     height: widget.minHeight,
