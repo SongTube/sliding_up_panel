@@ -311,6 +311,8 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with TickerProviderStat
                         borderRadius: BorderRadius.circular(widget.borderRadius * (1 - _ac.value)),
                         child: Container(
                           height: (widget.maxHeight * _ac.value) + (widget.minHeight * (1 - _ac.value)),
+                          width:  MediaQuery.of(context).size.width -
+                            (widget.margin.horizontal * (1 - _ac.value)),
                           child: child
                         ),
                       )
@@ -321,27 +323,15 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with TickerProviderStat
                     : widget.panelBuilder(_sc),
                 ),
                 // Collapsed Panel
-                Positioned(
-                  top: widget.slideDirection == SlideDirection.UP ? 0.0 : null,
-                  bottom: widget.slideDirection == SlideDirection.DOWN ? 0.0 : null,
-                  width:  MediaQuery.of(context).size.width -
-                    (widget.margin.horizontal),
-                  child: Container(
-                    height: widget.minHeight,
-                    child: widget.collapsed == null ? Container() : SlideTransition(
-                      position: Tween<Offset>(
-                        begin: Offset(0.0, 0.0),
-                        end: const Offset(0.0, -1.0),
-                      ).animate(CurvedAnimation(
-                        parent: _ac,
-                        curve: Curves.linear,
-                      )),
-                      // if the panel is open ignore pointers (touch events) on the collapsed
-                      // child so that way touch events go through to whatever is underneath
-                      child: IgnorePointer(
-                        ignoring: _isPanelOpen,
-                        child: widget.collapsed
-                      ),
+                Container(
+                  height: widget.minHeight,
+                  child: widget.collapsed == null ? Container() : FadeTransition(
+                    opacity: Tween(begin: 1.0, end: 0.0).animate(_ac),
+                    // if the panel is open ignore pointers (touch events) on the collapsed
+                    // child so that way touch events go through to whatever is underneath
+                    child: IgnorePointer(
+                      ignoring: _isPanelOpen,
+                      child: widget.collapsed
                     ),
                   ),
                 ),
@@ -364,12 +354,24 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with TickerProviderStat
       child: AnimatedBuilder(
         animation: _ac,
         builder: (context, _) {
-          return BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: _ac.value*widget.backdropBlurStrength,
-              sigmaY: _ac.value*widget.backdropBlurStrength
-            ),
-            child: Container(
+          if (widget.backdropBlurStrength != 0) {
+            return BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: _ac.value*widget.backdropBlurStrength,
+                sigmaY: _ac.value*widget.backdropBlurStrength
+              ),
+              child: Container(
+                height: MediaQuery.of(context).size.height,
+                width: MediaQuery.of(context).size.width,
+
+                //set color to null so that touch events pass through
+                //to the body when the panel is closed, otherwise,
+                //if a color exists, then touch events won't go through
+                color: _ac.value == 0.0 ? null : widget.backdropColor.withOpacity(widget.backdropOpacity * _ac.value),
+              ),
+            );
+          } else {
+            return Container(
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,
 
@@ -377,8 +379,8 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with TickerProviderStat
               //to the body when the panel is closed, otherwise,
               //if a color exists, then touch events won't go through
               color: _ac.value == 0.0 ? null : widget.backdropColor.withOpacity(widget.backdropOpacity * _ac.value),
-            ),
-          );
+            );
+          }
         }
       ),
     );
