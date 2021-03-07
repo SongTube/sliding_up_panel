@@ -269,10 +269,7 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with TickerProviderStat
       children: <Widget>[
 
         // The backdrop to overlay on the Body
-        IgnorePointer(
-          ignoring: true,
-          child: _backdropWidget()
-        ),
+        _backdropWidget(),
 
         _actualSlidingPanel(),        
 
@@ -295,7 +292,9 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with TickerProviderStat
                 decoration: widget.renderPanelSheet ? BoxDecoration(
                   border: widget.border,
                   boxShadow: widget.boxShadow,
-                  borderRadius: BorderRadius.circular(widget.borderRadius),
+                  borderRadius: _ac.value == 1
+                    ? BorderRadius.zero
+                    : BorderRadius.circular(widget.borderRadius),
                   color: Colors.transparent
                 ) : null,
                 child: child 
@@ -311,7 +310,9 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with TickerProviderStat
                       top: widget.slideDirection == SlideDirection.UP ? 0.0 : null,
                       bottom: widget.slideDirection == SlideDirection.DOWN ? 0.0 : null,
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(widget.borderRadius * (1 - _ac.value)),
+                        borderRadius: _ac.value == 1
+                          ? BorderRadius.zero
+                          : BorderRadius.circular(widget.borderRadius),
                         child: Container(
                           height: (widget.maxHeight * _ac.value) + (widget.minHeight * (1 - _ac.value)),
                           width:  MediaQuery.of(context).size.width -
@@ -321,22 +322,26 @@ class _SlidingUpPanelState extends State<SlidingUpPanel> with TickerProviderStat
                       )
                     );
                   },
-                  child: IgnorePointer(
-                    ignoring: !_isPanelOpen,
-                    child: widget.panel != null
-                      ? widget.panel
-                      : widget.panelBuilder(_sc),
-                  ),
+                  child: widget.panel != null
+                    ? widget.panel
+                    : widget.panelBuilder(_sc),
                 ),
                 // Collapsed Panel
-                Container(
-                  height: widget.minHeight,
-                  child: widget.collapsed == null ? Container() : FadeTransition(
-                    opacity: Tween(begin: 1.0, end: 0.0).animate(_ac),
-                    // if the panel is open ignore pointers (touch events) on the collapsed
-                    // child so that way touch events go through to whatever is underneath
-                    child: widget.collapsed,
-                  ),
+                AnimatedBuilder(
+                  animation: _ac,
+                  builder: (context, child) {
+                    return Opacity(
+                      opacity: (1 - _ac.value),
+                      child: _ac.value == 1
+                        ? Container()
+                        : child,
+                    );
+                  },
+                  child: Container(
+                    color: Colors.transparent,
+                    height: widget.minHeight,
+                    child: widget.collapsed
+                  )
                 ),
               ],
             ),
